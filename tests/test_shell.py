@@ -8,8 +8,6 @@ from unittest.mock import patch
 from src.shell import Shell, ShellError, ShellExit, build_prompt, parse_line
 
 
-# Этап 1, пункты 2–3: prompt и переменные окружения.
-# Код проверяет имя VFS в prompt и раскрытие переменной $HOME.
 class ParserTests(unittest.TestCase):
     """Проверки prompt и парсера."""
 
@@ -26,8 +24,6 @@ class ParserTests(unittest.TestCase):
             )
 
 
-# Этап 1, пункты 4–6: команды и ошибки.
-# Код проверяет заглушки ls/cd, ошибки и штатное завершение exit.
 class CommandTests(unittest.TestCase):
     """Проверки команд первого этапа."""
 
@@ -53,8 +49,6 @@ class CommandTests(unittest.TestCase):
             self.shell.run_line("exit")
 
 
-# Этап 1, пункт 7: интерактивная демонстрация REPL.
-# Код имитирует ввод пользователя и проверяет вывод команд и ошибок.
 class ReplTests(unittest.TestCase):
     """Проверка интерактивного цикла."""
 
