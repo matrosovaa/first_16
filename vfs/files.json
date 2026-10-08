@@ -1,0 +1,10 @@
+{
+  "README.md": "project",
+  "src": {
+    "main.py": "print('hello')",
+    "config.json": "{}"
+  },
+  "docs": {
+    "intro.txt": "documentation"
+  }
+}

@@ -1,0 +1,4 @@
+#!/bin/sh
+# Этап 2: второй вариант проверки параметров командной строки.
+cd "$(dirname "$0")/.."
+python3 -m src.shell --vfs vfs/files.json --script scripts/demo_stage2.txt

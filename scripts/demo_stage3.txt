@@ -1,0 +1,8 @@
+# Этап 3: проверка подключенной JSON-VFS.
+ls root.txt
+cd level1
+ls level2
+cd level2
+ls level3
+unknown
+exit

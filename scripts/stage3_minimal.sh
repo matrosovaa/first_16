@@ -1,0 +1,4 @@
+#!/bin/sh
+# Этап 3: проверяем минимальную JSON-VFS.
+cd "$(dirname "$0")/.."
+python3 -m src.shell --vfs vfs/minimal.json --script scripts/demo_stage3.txt

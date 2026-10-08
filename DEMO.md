@@ -1,26 +1,28 @@
-# Демонстрация Этапа 1
+# Демонстрация — вариант 16
 
-Запуск:
+## Этап 1
 
 ```text
 ./run.sh
 ```
 
-Пример:
+Показать `ls`, `cd`, `$HOME`, неизвестную команду, ошибку аргументов и
+`exit`.
+
+## Этап 2
 
 ```text
-vfs$ ls /tmp
-ls: /tmp
-vfs$ cd /home
-cd: /home
-vfs$ ls $HOME
-ls: /Users/student  (пример; путь зависит от ОС и пользователя)
-vfs$ unknown
-unknown: command not found
-vfs$ cd one two
-cd: too many arguments
-vfs$ exit
+./run.sh --vfs vfs/minimal.json --script scripts/demo_stage2.txt
 ```
 
-Здесь показаны CLI/REPL, prompt с именем VFS, раскрытие `$HOME`, заглушки
-`ls` и `cd`, ошибка неизвестной команды, ошибка аргументов и `exit`.
+В начале должны появиться пути VFS и стартового скрипта. Затем показываются
+строки скрипта и результаты их выполнения.
+
+## Этап 3
+
+```text
+./scripts/stage3_nested.sh
+```
+
+Используется JSON-VFS с тремя уровнями вложенности. VFS загружается в память.
+`ls` и `cd` остаются заглушками до этапа 4.

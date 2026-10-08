@@ -1,0 +1,10 @@
+{
+  "level1": {
+    "level2": {
+      "level3": {
+        "file.txt": "three levels"
+      }
+    }
+  },
+  "root.txt": "root file"
+}

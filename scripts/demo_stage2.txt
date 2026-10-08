@@ -1,0 +1,6 @@
+# Этап 2: проверка стартового скрипта.
+ls README.md
+cd docs
+ls $HOME
+unknown
+exit
