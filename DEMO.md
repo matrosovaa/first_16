@@ -1,26 +1,20 @@
-# Демонстрация Этапа 1
+# Демонстрация — вариант 16
 
-Запуск:
+## Этап 1
 
 ```text
 ./run.sh
 ```
 
-Пример:
+Показать `ls`, `cd`, `$HOME`, неизвестную команду, ошибку аргументов и `exit`.
+
+## Этап 2
 
 ```text
-vfs$ ls /tmp
-ls: /tmp
-vfs$ cd /home
-cd: /home
-vfs$ ls $HOME
-ls: /Users/student  (пример; путь зависит от ОС и пользователя)
-vfs$ unknown
-unknown: command not found
-vfs$ cd one two
-cd: too many arguments
-vfs$ exit
+./scripts/stage2_both.sh
+./scripts/stage2_errors.sh
 ```
 
-Здесь показаны CLI/REPL, prompt с именем VFS, раскрытие `$HOME`, заглушки
-`ls` и `cd`, ошибка неизвестной команды, ошибка аргументов и `exit`.
+В начале выводятся пути VFS и скрипта. Затем показываются строки скрипта и
+результаты. `stage2_errors.sh` показывает сообщения об ошибках выполнения
+скрипта с номерами строк и коды возврата.

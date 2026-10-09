@@ -1,0 +1,5 @@
+ls file.txt
+unknown
+cd one two
+ls
+exit
