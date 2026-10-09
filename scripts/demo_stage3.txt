@@ -1,0 +1,4 @@
+ls
+ls README.md
+cd docs
+exit

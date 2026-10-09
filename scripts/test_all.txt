@@ -1,0 +1,13 @@
+# проверка всех команд этапов 1-3, включая ошибки
+ls
+ls README.md docs
+ls $HOME
+cd
+cd docs
+cd $HOME
+cd one two
+ls ${HOME}/data
+exit now
+unknown
+cd "unterminated
+exit

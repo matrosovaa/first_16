@@ -1,5 +1,7 @@
-"""Тесты этапов 1-2 эмулятора, вариант 16."""
+"""Тесты этапов 1-3 эмулятора, вариант 16."""
 
+import base64
+import json
 import os
 import tempfile
 import unittest
@@ -13,23 +15,33 @@ from src.shell import (
     EXIT_SCRIPT_ERROR,
     Config,
     Shell,
-    ShellError,
-    ShellExit,
     build_prompt,
+    load_shell,
     main,
     parse_arguments,
     parse_line,
     print_config,
     repl,
     run_script,
-    vfs_name_from_path,
 )
+from src.errors import ShellError, ShellExit
+from src.vfs import VirtualFileSystem
 
 
 def write_script(directory, text):
     path = Path(directory) / "start.txt"
     path.write_text(text, encoding="utf-8")
     return path
+
+
+def write_vfs(directory, data, name="demo.json"):
+    path = Path(directory) / name
+    path.write_text(json.dumps(data), encoding="utf-8")
+    return path
+
+
+def b64(text):
+    return base64.b64encode(text).decode("ascii")
 
 
 class ParserTests(unittest.TestCase):
@@ -108,9 +120,10 @@ class ConfigTests(unittest.TestCase):
         self.assertIn("VFS path: <not set>", output.getvalue())
         self.assertIn("Script path: <not set>", output.getvalue())
 
-    def test_vfs_name_from_path(self):
-        self.assertEqual(vfs_name_from_path("vfs/minimal.json"), "minimal")
-        self.assertEqual(vfs_name_from_path(None), "vfs")
+    def test_default_shell_without_vfs(self):
+        shell = load_shell(None)
+        self.assertEqual(shell.vfs_name, "vfs")
+        self.assertIsNone(shell.vfs)
 
 
 class ScriptTests(unittest.TestCase):
@@ -154,14 +167,82 @@ class ScriptTests(unittest.TestCase):
             run_script(Shell("test"), "missing.txt", StringIO(), StringIO())
 
 
+class VfsTests(unittest.TestCase):
+    def test_load_tree_into_memory(self):
+        data = {
+            "docs": {"readme.txt": b64(b"hello")},
+            "bin.dat": b64(bytes([0, 255, 128])),
+            "empty": {},
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            vfs = VirtualFileSystem.from_json(write_vfs(directory, data))
+        self.assertEqual(vfs.name, "demo")
+        self.assertEqual(vfs.root["docs"]["readme.txt"], b"hello")
+        self.assertEqual(vfs.root["bin.dat"], bytes([0, 255, 128]))
+        self.assertEqual(vfs.root["empty"], {})
+
+    def test_three_levels(self):
+        data = {"a": {"b": {"c": {"f.txt": b64(b"deep")}}}}
+        with tempfile.TemporaryDirectory() as directory:
+            vfs = VirtualFileSystem.from_json(write_vfs(directory, data))
+        self.assertEqual(vfs.root["a"]["b"]["c"]["f.txt"], b"deep")
+
+    def test_source_file_is_not_modified(self):
+        data = {"f.txt": b64(b"x")}
+        with tempfile.TemporaryDirectory() as directory:
+            path = write_vfs(directory, data)
+            before = path.read_bytes()
+            VirtualFileSystem.from_json(path)
+            self.assertEqual(path.read_bytes(), before)
+            self.assertEqual(os.listdir(directory), ["demo.json"])
+
+    def test_missing_file(self):
+        with self.assertRaises(ShellError):
+            VirtualFileSystem.from_json("missing.json")
+
+    def test_invalid_json(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "bad.json"
+            path.write_text("{not json", encoding="utf-8")
+            with self.assertRaises(ShellError):
+                VirtualFileSystem.from_json(path)
+
+    def test_root_must_be_object(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = write_vfs(directory, ["list"])
+            with self.assertRaises(ShellError):
+                VirtualFileSystem.from_json(path)
+
+    def test_invalid_base64(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = write_vfs(directory, {"d": {"f.txt": "not base64!"}})
+            with self.assertRaises(ShellError) as context:
+                VirtualFileSystem.from_json(path)
+        self.assertIn("/d/f.txt", str(context.exception))
+
+    def test_unsupported_value(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = write_vfs(directory, {"f.txt": 42})
+            with self.assertRaises(ShellError):
+                VirtualFileSystem.from_json(path)
+
+    def test_shell_uses_vfs_name_in_prompt(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = write_vfs(directory, {}, "myvfs.json")
+            shell = load_shell(str(path))
+        self.assertEqual(shell.vfs_name, "myvfs")
+        self.assertEqual(build_prompt(shell.vfs_name), "myvfs$ ")
+
+
 class MainTests(unittest.TestCase):
-    def run_main(self, text=None, script_path=None):
+    def run_main(self, text=None, script_path=None, vfs_data=None):
         output = StringIO()
         errors = StringIO()
         with tempfile.TemporaryDirectory() as directory:
+            vfs_path = write_vfs(directory, vfs_data or {})
+            argv = ["--vfs", str(vfs_path)]
             if text is not None:
                 script_path = str(write_script(directory, text))
-            argv = ["--vfs", "vfs/demo.json"]
             if script_path:
                 argv += ["--script", script_path]
             with patch("sys.stdout", output), patch("sys.stderr", errors):
@@ -170,8 +251,13 @@ class MainTests(unittest.TestCase):
 
     def test_parameters_are_printed(self):
         _, output, _ = self.run_main("exit\n")
-        self.assertIn("VFS path: vfs/demo.json", output)
+        self.assertIn("VFS path:", output)
+        self.assertIn("demo.json", output)
         self.assertIn("Script path:", output)
+
+    def test_prompt_in_script_contains_vfs_name(self):
+        _, output, _ = self.run_main("ls\nexit\n")
+        self.assertIn("demo$ ls", output)
 
     def test_success_exit_code(self):
         code, _, _ = self.run_main("ls\nexit\n")
@@ -186,6 +272,13 @@ class MainTests(unittest.TestCase):
         code, _, errors = self.run_main(script_path="missing.txt")
         self.assertEqual(code, EXIT_FATAL)
         self.assertIn("script: file not found: missing.txt", errors)
+
+    def test_invalid_vfs_is_reported_without_traceback(self):
+        errors = StringIO()
+        with patch("sys.stdout", StringIO()), patch("sys.stderr", errors):
+            code = main(["--vfs", "missing.json"])
+        self.assertEqual(code, EXIT_FATAL)
+        self.assertIn("vfs: file not found: missing.json", errors.getvalue())
 
 
 if __name__ == "__main__":

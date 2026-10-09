@@ -1,0 +1,13 @@
+{
+  "root.txt": "cm9vdCBmaWxl",
+  "level1": {
+    "a.txt": "Zmlyc3QgbGV2ZWw=",
+    "level2": {
+      "b.txt": "c2Vjb25kIGxldmVs",
+      "level3": {
+        "file.txt": "dGhyZWUgbGV2ZWxz",
+        "empty": {}
+      }
+    }
+  }
+}

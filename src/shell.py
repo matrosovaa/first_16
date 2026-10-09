@@ -1,4 +1,4 @@
-"""Эмулятор UNIX-подобной оболочки, вариант 16, этапы 1-2."""
+"""Эмулятор UNIX-подобной оболочки, вариант 16, этапы 1-3."""
 
 import argparse
 import os
@@ -7,18 +7,13 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+from src.errors import ShellError, ShellExit
+from src.vfs import VirtualFileSystem
+
 EXIT_OK = 0
 EXIT_SCRIPT_ERROR = 1
 EXIT_FATAL = 2
 COMMENT_PREFIX = "#"
-
-
-class ShellError(Exception):
-    """Ошибка выполнения команды."""
-
-
-class ShellExit(Exception):
-    """Сигнал штатного завершения оболочки."""
 
 
 @dataclass
@@ -61,8 +56,9 @@ def require_args(command, args, minimum=None, maximum=None):
 class Shell:
     """Состояние минимального REPL для первого этапа."""
 
-    def __init__(self, vfs_name="vfs"):
+    def __init__(self, vfs_name="vfs", vfs=None):
         self.vfs_name = vfs_name
+        self.vfs = vfs
         self.commands = {
             "ls": self.cmd_ls,
             "cd": self.cmd_cd,
@@ -175,9 +171,12 @@ def parse_arguments(argv=None):
     return parser.parse_args(argv)
 
 
-def vfs_name_from_path(vfs_path):
-    """Возвращает имя VFS для приглашения к вводу."""
-    return Path(vfs_path).stem if vfs_path else "vfs"
+def load_shell(vfs_path):
+    """Создает оболочку; при заданном пути загружает VFS в память."""
+    if not vfs_path:
+        return Shell()
+    vfs = VirtualFileSystem.from_json(vfs_path)
+    return Shell(vfs.name, vfs)
 
 
 def main(argv=None):
@@ -185,17 +184,17 @@ def main(argv=None):
     args = parse_arguments(argv)
     config = Config(vfs_path=args.vfs, script_path=args.script)
     print_config(config, sys.stdout)
-    shell = Shell(vfs_name_from_path(config.vfs_path))
 
-    if config.script_path:
-        try:
+    try:
+        shell = load_shell(config.vfs_path)
+        if config.script_path:
             success = run_script(
                 shell, config.script_path, sys.stdout, sys.stderr
             )
-        except ShellError as error:
-            print(error, file=sys.stderr)
-            return EXIT_FATAL
-        return EXIT_OK if success else EXIT_SCRIPT_ERROR
+            return EXIT_OK if success else EXIT_SCRIPT_ERROR
+    except ShellError as error:
+        print(error, file=sys.stderr)
+        return EXIT_FATAL
 
     return repl(shell)
 
