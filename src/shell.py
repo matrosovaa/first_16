@@ -8,16 +8,10 @@ from pathlib import Path
 
 from dataclasses import dataclass
 
+from src.errors import ShellError, ShellExit
+
 
 EXIT_OK = 0
-
-
-class ShellError(Exception):
-    """Ошибка команды или скрипта."""
-
-
-class ShellExit(Exception):
-    """Сигнал штатного завершения оболочки."""
 
 
 @dataclass

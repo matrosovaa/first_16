@@ -3,7 +3,7 @@
 import json
 from pathlib import Path
 
-from src.shell import ShellError
+from src.errors import ShellError
 
 
 class VirtualFileSystem:
