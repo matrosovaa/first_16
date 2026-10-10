@@ -1,0 +1,39 @@
+# Этап 5: проверка chmod. Права по умолчанию: 644 у файлов, 755 у каталогов.
+ls -l docs
+# Восьмеричные режимы: три цифры, четыре цифры, короткая запись.
+chmod 600 docs/guide.md
+chmod 0750 docs/empty
+chmod 7 docs/notes.txt
+ls -l docs
+# Символьные режимы: добавить, убрать, назначить, несколько частей.
+chmod u+x docs/guide.md
+chmod go-r docs/notes.txt
+chmod a=r docs/empty
+chmod u=rwx,g=rx,o= docs/guide.md
+chmod +x README.md
+chmod -w notes.txt
+ls -l docs
+ls -l
+# Относительные пути и несколько путей сразу.
+cd docs
+chmod 644 guide.md notes.txt
+ls -l
+cd /
+# Рекурсивное изменение всего поддерева.
+ls -l src
+chmod -R 700 src
+find src
+ls -l src
+ls -l src/utils
+# Изменения только в памяти: структура VFS не поменялась.
+find / -type f -name "*.py"
+# Ошибки.
+chmod
+chmod 644
+chmod 999 notes.txt
+chmod u+z notes.txt
+chmod rwx notes.txt
+chmod 644 nothing
+chmod 600 nothing notes.txt
+ls -l notes.txt
+exit
