@@ -3,9 +3,20 @@
 import base64
 import binascii
 import json
+import posixpath
 from pathlib import Path
 
 from src.errors import ShellError
+
+ROOT = "/"
+DIR_SIZE = 4096
+DIR_MODE = 0o755
+FILE_MODE = 0o644
+
+
+def is_dir(node):
+    """Проверяет, что узел VFS является каталогом."""
+    return isinstance(node, dict)
 
 
 def decode_node(node, location):
@@ -52,3 +63,36 @@ class VirtualFileSystem:
     def name(self):
         """Имя VFS берется из имени JSON-файла."""
         return Path(self.source_path).stem
+
+    def resolve(self, cwd, path):
+        """Строит абсолютный нормализованный путь внутри VFS."""
+        joined = posixpath.normpath(posixpath.join(cwd, path))
+        return ROOT + joined.lstrip(ROOT)
+
+    def lookup(self, path):
+        """Возвращает узел по абсолютному пути или None."""
+        node = self.root
+        for part in path.split(ROOT):
+            if not part:
+                continue
+            if not is_dir(node) or part not in node:
+                return None
+            node = node[part]
+        return node
+
+    def walk(self, path):
+        """Обходит узел и всех его потомков в алфавитном порядке."""
+        node = self.lookup(path)
+        yield path, node
+        if is_dir(node):
+            for name in sorted(node):
+                yield from self.walk(posixpath.join(path, name))
+
+    def size(self, path):
+        """Возвращает размер узла в байтах."""
+        node = self.lookup(path)
+        return DIR_SIZE if is_dir(node) else len(node)
+
+    def mode(self, path):
+        """Возвращает права доступа узла."""
+        return DIR_MODE if is_dir(self.lookup(path)) else FILE_MODE
