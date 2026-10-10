@@ -1,4 +1,4 @@
-"""Тесты этапов 1-3 эмулятора, вариант 16."""
+"""Тесты этапов 1-4 эмулятора, вариант 16."""
 
 import json
 import os
@@ -45,11 +45,12 @@ class CommandTests(unittest.TestCase):
     def setUp(self):
         self.shell = Shell("vfs16")
 
-    def test_ls_stub(self):
-        self.assertEqual(self.shell.run_line("ls /tmp -l"), "ls: /tmp -l")
+    def test_ls_empty_default_vfs(self):
+        self.assertIsNone(self.shell.run_line("ls"))
 
-    def test_cd_stub(self):
-        self.assertEqual(self.shell.run_line("cd /home"), "cd: /home")
+    def test_cd_missing_directory(self):
+        with self.assertRaises(ShellError):
+            self.shell.run_line("cd /home")
 
     def test_unknown_command(self):
         with self.assertRaises(ShellError):
@@ -81,11 +82,11 @@ class ConfigTests(unittest.TestCase):
             )
             output = StringIO()
             errors = StringIO()
-            shell = Shell("test")
+            shell = Shell("test", VirtualFileSystem({"file.txt": "x"}, "test"))
             success = run_script(shell, script, output, errors)
             self.assertTrue(success)
-            self.assertIn("test$ ls file.txt", output.getvalue())
-            self.assertIn("ls: file.txt", output.getvalue())
+            self.assertIn("test:/$ ls file.txt", output.getvalue())
+            self.assertIn("file.txt\n", output.getvalue())
             self.assertEqual(errors.getvalue(), "")
 
     def test_script_error(self):
@@ -123,7 +124,8 @@ class ReplTests(unittest.TestCase):
     """Проверка интерактивного цикла."""
 
     def test_repl(self):
-        shell = Shell("demo_vfs")
+        vfs = VirtualFileSystem({"file.txt": "x"}, "demo_vfs")
+        shell = Shell("demo_vfs", vfs)
         commands = iter(["ls file.txt", "unknown", "exit"])
         prompts = []
         output = StringIO()
@@ -136,8 +138,8 @@ class ReplTests(unittest.TestCase):
         from src.shell import repl
 
         self.assertEqual(repl(shell, fake_input, output, errors), 0)
-        self.assertEqual(prompts, ["demo_vfs$ "] * 3)
-        self.assertIn("ls: file.txt", output.getvalue())
+        self.assertEqual(prompts, ["demo_vfs:/$ "] * 3)
+        self.assertIn("file.txt", output.getvalue())
         self.assertIn("unknown: command not found", errors.getvalue())
 
 
