@@ -1,0 +1,17 @@
+{
+  "README.md": "cHJvamVjdCByZWFkbWU=",
+  "notes.txt": "cm9vdCBub3Rlcw==",
+  "logo.bin": "iVBORwD/EIA=",
+  "docs": {
+    "guide.md": "dXNlciBndWlkZQ==",
+    "notes.txt": "ZG9jcyBub3Rlcw==",
+    "empty": {}
+  },
+  "src": {
+    "main.py": "cHJpbnQoJ2hlbGxvJykK",
+    "utils": {
+      "helpers.py": "ZGVmIGhlbHBlcigpOgogICAgcGFzcwo=",
+      "notes.txt": "dXRpbHMgbm90ZXM="
+    }
+  }
+}
