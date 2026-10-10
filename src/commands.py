@@ -1,10 +1,11 @@
-"""Логика команд ls, cd, find и date, вариант 16."""
+"""Логика команд ls, cd, find, date и chmod, вариант 16."""
 
 import fnmatch
 import posixpath
+import re
 
 from src.errors import ShellError
-from src.vfs import ROOT, is_dir
+from src.vfs import MODE_MASK, ROOT, is_dir
 
 CURRENT_DIR = "."
 DATE_FORMAT = "%a %b %d %H:%M:%S %Z %Y"
@@ -12,6 +13,12 @@ DATE_PREFIX = "+"
 PERMISSION_CHARS = "rwxrwxrwx"
 FIND_PREDICATES = ("-name", "-type")
 FIND_TYPES = {"f": False, "d": True}
+OCTAL_PATTERN = re.compile(r"[0-7]{1,4}")
+CLAUSE_PATTERN = re.compile(r"([ugoa]*)([-+=])([rwx]*)")
+WHO_SHIFTS = {"u": 6, "g": 3, "o": 0}
+PERMISSION_VALUES = {"r": 4, "w": 2, "x": 1}
+PERMISSION_MASK = 0o7
+RECURSIVE_OPTION = "-R"
 
 
 def require_args(command, args, minimum=None, maximum=None):
@@ -162,3 +169,73 @@ def run_find(vfs, cwd, args):
     for target in paths:
         lines.extend(find_in(vfs, cwd, target, name, kind))
     return "\n".join(lines) or None
+
+
+def parse_clause(part, text):
+    """Разбирает одну символьную часть режима, например u+x."""
+    match = CLAUSE_PATTERN.fullmatch(part)
+    if match is None:
+        raise ShellError(f"chmod: invalid mode: '{text}'")
+    who, operator, letters = match.groups()
+    shifts = {WHO_SHIFTS[letter] for letter in who.replace("a", "ugo")}
+    shifts = shifts or set(WHO_SHIFTS.values())
+    value = sum(PERMISSION_VALUES[letter] for letter in set(letters))
+    who_mask = sum(PERMISSION_MASK << shift for shift in shifts)
+    bits = sum(value << shift for shift in shifts)
+    return who_mask, operator, bits
+
+
+def apply_clause(current, clause):
+    """Применяет разобранную часть режима к текущим правам."""
+    who_mask, operator, bits = clause
+    if operator == "+":
+        return current | bits
+    if operator == "-":
+        return current & ~bits
+    return (current & ~who_mask) | bits
+
+
+def parse_mode(text):
+    """Возвращает функцию, которая считает новые права по старым."""
+    if OCTAL_PATTERN.fullmatch(text):
+        value = int(text, 8)
+        if value > MODE_MASK:
+            raise ShellError(f"chmod: invalid mode: '{text}'")
+        return lambda current: value
+    clauses = [parse_clause(part, text) for part in text.split(",")]
+
+    def change(current):
+        for clause in clauses:
+            current = apply_clause(current, clause)
+        return current
+
+    return change
+
+
+def chmod_target(vfs, path, change, recursive):
+    """Меняет права узла и, при -R, всех его потомков."""
+    paths = [item for item, _ in vfs.walk(path)] if recursive else [path]
+    for item in paths:
+        vfs.set_mode(item, change(vfs.mode(item)))
+
+
+def run_chmod(vfs, cwd, args):
+    """Выполняет chmod [-R] режим путь..."""
+    recursive = RECURSIVE_OPTION in args
+    operands = [arg for arg in args if arg != RECURSIVE_OPTION]
+    if not operands:
+        raise ShellError("chmod: missing operand")
+    if len(operands) == 1:
+        raise ShellError(f"chmod: missing operand after '{operands[0]}'")
+    change = parse_mode(operands[0])
+    errors = []
+    for target in operands[1:]:
+        path = vfs.resolve(cwd, target)
+        if vfs.lookup(path) is None:
+            errors.append(
+                f"chmod: cannot access '{target}': No such file or directory"
+            )
+            continue
+        chmod_target(vfs, path, change, recursive)
+    if errors:
+        raise ShellError("\n".join(errors))

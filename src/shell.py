@@ -1,4 +1,4 @@
-"""Эмулятор оболочки, вариант 16, этапы 1-4."""
+"""Эмулятор оболочки, вариант 16, этапы 1-5."""
 
 import argparse
 import os
@@ -12,6 +12,7 @@ from datetime import datetime
 from src.commands import (
     require_args,
     run_cd,
+    run_chmod,
     run_date,
     run_find,
     run_ls,
@@ -76,6 +77,7 @@ class Shell:
             "cd": self.cmd_cd,
             "date": self.cmd_date,
             "find": self.cmd_find,
+            "chmod": self.cmd_chmod,
             "exit": self.cmd_exit,
         }
 
@@ -98,6 +100,10 @@ class Shell:
     def cmd_find(self, args):
         """Ищет файлы и каталоги в VFS."""
         return run_find(self.vfs, self.cwd, args)
+
+    def cmd_chmod(self, args):
+        """Меняет права доступа к файлам и каталогам в памяти."""
+        run_chmod(self.vfs, self.cwd, args)
 
     def cmd_exit(self, args):
         """Завершает работу оболочки."""
