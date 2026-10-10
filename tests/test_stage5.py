@@ -57,6 +57,7 @@ class SymbolicModeTests(unittest.TestCase):
         self.shell = make_shell()
 
     def check(self, mode, expected):
+        """Применяет режим к a.txt и сверяет права."""
         self.shell.run_line(f"chmod {mode} a.txt")
         self.assertEqual(modes(self.shell, "a.txt"), expected, mode)
 

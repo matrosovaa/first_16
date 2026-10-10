@@ -205,6 +205,7 @@ def parse_mode(text):
     clauses = [parse_clause(part, text) for part in text.split(",")]
 
     def change(current):
+        """Применяет все части режима по порядку."""
         for clause in clauses:
             current = apply_clause(current, clause)
         return current
@@ -225,11 +226,12 @@ def run_chmod(vfs, cwd, args):
     operands = [arg for arg in args if arg != RECURSIVE_OPTION]
     if not operands:
         raise ShellError("chmod: missing operand")
-    if len(operands) == 1:
-        raise ShellError(f"chmod: missing operand after '{operands[0]}'")
-    change = parse_mode(operands[0])
+    mode_text, targets = operands[0], operands[1:]
+    if not targets:
+        raise ShellError(f"chmod: missing operand after '{mode_text}'")
+    change = parse_mode(mode_text)
     errors = []
-    for target in operands[1:]:
+    for target in targets:
         path = vfs.resolve(cwd, target)
         if vfs.lookup(path) is None:
             errors.append(
