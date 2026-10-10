@@ -10,6 +10,7 @@ ROOT = "/"
 DIR_SIZE = 4096
 DIR_MODE = 0o755
 FILE_MODE = 0o644
+MODE_MASK = 0o777
 
 
 def is_dir(node):
@@ -34,6 +35,7 @@ class VirtualFileSystem:
         """Запоминает данные VFS и путь к исходному файлу."""
         self.data = data
         self.source_path = source_path
+        self.modes = {}
 
     @classmethod
     def from_json(cls, path):
@@ -89,4 +91,10 @@ class VirtualFileSystem:
 
     def mode(self, path):
         """Возвращает права доступа узла."""
+        if path in self.modes:
+            return self.modes[path]
         return DIR_MODE if is_dir(self.lookup(path)) else FILE_MODE
+
+    def set_mode(self, path, mode):
+        """Меняет права узла только в памяти, не трогая данные VFS."""
+        self.modes[path] = mode & MODE_MASK
