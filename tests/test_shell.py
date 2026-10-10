@@ -132,6 +132,7 @@ class ReplTests(unittest.TestCase):
         errors = StringIO()
 
         def fake_input(prompt):
+            """Подменяет input и запоминает приглашения."""
             prompts.append(prompt)
             return next(commands)
 

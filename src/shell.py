@@ -64,6 +64,7 @@ class Shell:
     """Состояние REPL и подключенной VFS."""
 
     def __init__(self, vfs_name="vfs", vfs=None, clock=current_time):
+        """Создает оболочку с VFS, текущим каталогом и командами."""
         self.vfs_name = vfs_name
         if vfs is None:
             vfs = VirtualFileSystem({}, vfs_name)

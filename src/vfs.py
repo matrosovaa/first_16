@@ -31,6 +31,7 @@ class VirtualFileSystem:
     """Хранит содержимое JSON-VFS в памяти."""
 
     def __init__(self, data, source_path):
+        """Запоминает данные VFS и путь к исходному файлу."""
         self.data = data
         self.source_path = source_path
 
