@@ -1,0 +1,16 @@
+{
+  "README.md": "project readme",
+  "notes.txt": "root notes",
+  "docs": {
+    "guide.md": "user guide",
+    "notes.txt": "docs notes",
+    "empty": {}
+  },
+  "src": {
+    "main.py": "print('hello')",
+    "utils": {
+      "helpers.py": "def helper(): pass",
+      "notes.txt": "utils notes"
+    }
+  }
+}

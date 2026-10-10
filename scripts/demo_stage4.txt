@@ -1,0 +1,43 @@
+# Этап 4: проверка ls, cd, date и find.
+# ls: каталог, путь, файл, длинный формат, ошибки.
+ls
+ls docs
+ls -l
+ls -l src/utils
+ls README.md
+ls docs/empty
+ls missing
+ls -x
+ls docs src
+# cd: вложенные каталоги, .., абсолютный путь, без аргумента, ошибки.
+cd src
+ls
+cd utils
+ls -l
+cd ..
+cd /docs
+ls
+cd ../src/utils
+cd /
+cd missing
+cd README.md
+cd docs src
+# date: формат по умолчанию, свой формат, ошибки.
+date
+date +%Y-%m-%d
+date +%H:%M
+date tomorrow
+date +%Y extra
+# find: все режимы поиска и ошибки.
+find
+find docs
+find / -name notes.txt
+find src -type d
+find -type f -name "*.py"
+find / -name "*.md" -type f
+find docs/empty
+find /missing
+find -name
+find -size 10
+find -type x
+exit
