@@ -9,7 +9,6 @@ from pathlib import Path
 from dataclasses import dataclass
 
 
-# Этап 1: код успешного завершения.
 EXIT_OK = 0
 
 
@@ -21,7 +20,6 @@ class ShellExit(Exception):
     """Сигнал штатного завершения оболочки."""
 
 
-# Этап 2: параметры запуска эмулятора.
 @dataclass
 class Config:
     """Параметры командной строки."""
@@ -30,20 +28,16 @@ class Config:
     script_path: str | None = None
 
 
-# Этап 3: VFS должна храниться только в памяти.
-# Этап 1: prompt содержит имя VFS.
 def build_prompt(vfs_name):
     """Возвращает приглашение оболочки."""
     return f"{vfs_name}$ "
 
 
-# Этап 1: раскрываем переменные окружения.
 def expand_variables(line):
     """Раскрывает переменные окружения."""
     return os.path.expandvars(line)
 
 
-# Этап 1: разбираем команду и аргументы.
 def parse_line(line):
     """Разбирает строку на части."""
 
@@ -56,7 +50,6 @@ def parse_line(line):
     return parts[0], parts[1:]
 
 
-# Этап 1: проверяем количество аргументов.
 def require_args(command, args, minimum=None, maximum=None):
     """Проверяет количество аргументов."""
     if minimum is not None and len(args) < minimum:
@@ -68,7 +61,6 @@ def require_args(command, args, minimum=None, maximum=None):
 class Shell:
     """Состояние REPL и подключенной VFS."""
 
-    # Этап 3: VFS хранится в оболочке.
     def __init__(self, vfs_name="vfs", vfs=None):
         self.vfs_name = vfs_name
         self.vfs = vfs
@@ -78,24 +70,20 @@ class Shell:
             "exit": self.cmd_exit,
         }
 
-    # Этап 1: ls остается заглушкой до этапа 4.
     def cmd_ls(self, args):
         """Заглушка команды ls."""
         return f"ls: {' '.join(args)}" if args else "ls:"
 
-    # Этап 1: cd остается заглушкой до этапа 4.
     def cmd_cd(self, args):
         """Заглушка команды cd."""
         require_args("cd", args, maximum=1)
         return f"cd: {' '.join(args)}" if args else "cd:"
 
-    # Этап 1: exit завершает оболочку.
     def cmd_exit(self, args):
         """Завершает работу оболочки."""
         require_args("exit", args, maximum=0)
         raise ShellExit
 
-    # Этап 1: неизвестная команда дает ошибку.
     def execute(self, command, args):
         """Выполняет распознанную команду."""
         handler = self.commands.get(command)
@@ -103,7 +91,6 @@ class Shell:
             raise ShellError(f"{command}: command not found")
         return handler(args)
 
-    # Этап 1: выполняем одну строку ввода.
     def run_line(self, line):
         """Выполняет одну строку ввода."""
         command, args = parse_line(line)
@@ -112,7 +99,6 @@ class Shell:
         return self.execute(command, args)
 
 
-# Этап 2: выводим параметры запуска.
 def print_config(config, output_stream):
     """Показывает параметры запуска."""
     vfs_path = config.vfs_path or "<default>"
@@ -121,7 +107,6 @@ def print_config(config, output_stream):
     print(f"Script path: {script_path}", file=output_stream)
 
 
-# Этап 2: выполняем команды скрипта.
 def run_script(shell, script_path, output_stream, error_stream):
     """Выполняет команды скрипта."""
 
@@ -153,7 +138,6 @@ def run_script(shell, script_path, output_stream, error_stream):
     return True
 
 
-# Этап 2: CLI получает пути VFS и скрипта.
 def parse_arguments(argv=None):
     """Разбирает параметры командной строки."""
     parser = argparse.ArgumentParser(
@@ -166,7 +150,6 @@ def parse_arguments(argv=None):
     return parser.parse_args(argv)
 
 
-# Этап 1: сохраняем интерактивный REPL.
 def repl(shell, input_func=input, output_stream=sys.stdout,
          error_stream=sys.stderr):
     """Запускает интерактивный цикл."""
@@ -192,7 +175,6 @@ def repl(shell, input_func=input, output_stream=sys.stdout,
     return EXIT_OK
 
 
-# Этап 2: запускаем скрипт или REPL.
 def main(argv=None):
     """Точка входа программы."""
     args = parse_arguments(argv)

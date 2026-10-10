@@ -6,7 +6,6 @@ from pathlib import Path
 from src.shell import ShellError
 
 
-# Этап 3: загружаем JSON без распаковки на диск.
 class VirtualFileSystem:
     """Хранит содержимое JSON-VFS в памяти."""
 
@@ -14,7 +13,6 @@ class VirtualFileSystem:
         self.data = data
         self.source_path = source_path
 
-    # Этап 3: JSON целиком загружается в память.
     @classmethod
     def from_json(cls, path):
         """Создает VFS из JSON-файла."""
@@ -30,7 +28,6 @@ class VirtualFileSystem:
             raise ShellError("vfs: root must be a JSON object")
         return cls(data, str(file_path))
 
-    # Этап 3: имя VFS берется из имени JSON-файла.
     @property
     def name(self):
         """Возвращает имя подключенной VFS."""
