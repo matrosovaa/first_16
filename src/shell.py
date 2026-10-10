@@ -1,14 +1,22 @@
-"""Эмулятор UNIX-подобной оболочки, вариант 16, этапы 1-3."""
+"""Эмулятор UNIX-подобной оболочки, вариант 16, этапы 1-4."""
 
 import argparse
 import os
 import shlex
 import sys
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 
+from src.commands import (
+    run_cd,
+    run_date,
+    run_find,
+    run_ls,
+    split_options,
+)
 from src.errors import ShellError, ShellExit
-from src.vfs import VirtualFileSystem
+from src.vfs import ROOT, VirtualFileSystem
 
 EXIT_OK = 0
 EXIT_SCRIPT_ERROR = 1
@@ -24,9 +32,16 @@ class Config:
     script_path: str | None = None
 
 
-def build_prompt(vfs_name):
-    """Возвращает приглашение оболочки."""
-    return f"{vfs_name}$ "
+def build_prompt(vfs_name, cwd=None):
+    """Возвращает приглашение оболочки с именем VFS и каталогом."""
+    if cwd is None:
+        return f"{vfs_name}$ "
+    return f"{vfs_name}:{cwd}$ "
+
+
+def current_time():
+    """Возвращает текущее время с часовым поясом."""
+    return datetime.now().astimezone()
 
 
 def expand_variables(line):
@@ -54,25 +69,45 @@ def require_args(command, args, minimum=None, maximum=None):
 
 
 class Shell:
-    """Состояние минимального REPL для первого этапа."""
+    """Состояние REPL, подключенной VFS и текущего каталога."""
 
-    def __init__(self, vfs_name="vfs", vfs=None):
+    def __init__(self, vfs_name="vfs", vfs=None, clock=current_time):
         self.vfs_name = vfs_name
         self.vfs = vfs
+        self.fs = vfs if vfs is not None else VirtualFileSystem({}, vfs_name)
+        self.cwd = ROOT
+        self.clock = clock
         self.commands = {
             "ls": self.cmd_ls,
             "cd": self.cmd_cd,
+            "date": self.cmd_date,
+            "find": self.cmd_find,
             "exit": self.cmd_exit,
         }
 
+    def prompt(self):
+        """Возвращает приглашение с именем VFS и текущим каталогом."""
+        return build_prompt(self.vfs_name, self.cwd)
+
     def cmd_ls(self, args):
-        """Заглушка команды ls."""
-        return f"ls: {' '.join(args)}" if args else "ls:"
+        """Показывает содержимое каталога или файл."""
+        flags, operands = split_options("ls", args, "l")
+        require_args("ls", operands, maximum=1)
+        return run_ls(self.fs, self.cwd, "l" in flags, operands)
 
     def cmd_cd(self, args):
-        """Заглушка команды cd."""
+        """Меняет текущий каталог внутри VFS."""
         require_args("cd", args, maximum=1)
-        return f"cd: {' '.join(args)}" if args else "cd:"
+        self.cwd = run_cd(self.fs, self.cwd, args)
+
+    def cmd_date(self, args):
+        """Показывает текущие дату и время."""
+        require_args("date", args, maximum=1)
+        return run_date(self.clock(), args)
+
+    def cmd_find(self, args):
+        """Ищет файлы и каталоги в VFS."""
+        return run_find(self.fs, self.cwd, args)
 
     def cmd_exit(self, args):
         """Завершает работу оболочки."""
@@ -97,10 +132,9 @@ class Shell:
 def repl(shell, input_func=input, output_stream=sys.stdout,
          error_stream=sys.stderr):
     """Запускает интерактивный цикл оболочки."""
-    prompt = build_prompt(shell.vfs_name)
     while True:
         try:
-            line = input_func(prompt)
+            line = input_func(shell.prompt())
         except EOFError:
             print(file=output_stream)
             break
@@ -143,8 +177,7 @@ def run_script(shell, script_path, output_stream, error_stream):
         command_line = line.strip()
         if not command_line or command_line.startswith(COMMENT_PREFIX):
             continue
-        print(f"{build_prompt(shell.vfs_name)}{command_line}",
-              file=output_stream)
+        print(f"{shell.prompt()}{command_line}", file=output_stream)
         try:
             result = shell.run_line(command_line)
         except ShellExit:

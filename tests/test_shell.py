@@ -1,4 +1,4 @@
-"""Тесты этапов 1-3 эмулятора, вариант 16."""
+"""Тесты этапов 1-4 эмулятора, вариант 16."""
 
 import base64
 import json
@@ -44,6 +44,10 @@ def b64(text):
     return base64.b64encode(text).decode("ascii")
 
 
+def make_vfs(name="demo"):
+    return VirtualFileSystem({"file.txt": b"x", "found.txt": b"y"}, name)
+
+
 class ParserTests(unittest.TestCase):
     def test_prompt_contains_vfs_name(self):
         self.assertEqual(build_prompt("myvfs"), "myvfs$ ")
@@ -62,11 +66,12 @@ class CommandTests(unittest.TestCase):
     def setUp(self):
         self.shell = Shell("vfs16")
 
-    def test_ls_stub(self):
-        self.assertEqual(self.shell.run_line("ls /tmp -l"), "ls: /tmp -l")
+    def test_ls_empty_vfs(self):
+        self.assertIsNone(self.shell.run_line("ls"))
 
-    def test_cd_stub(self):
-        self.assertEqual(self.shell.run_line("cd /home"), "cd: /home")
+    def test_cd_missing_directory(self):
+        with self.assertRaises(ShellError):
+            self.shell.run_line("cd /home")
 
     def test_unknown_command(self):
         with self.assertRaises(ShellError):
@@ -83,7 +88,7 @@ class CommandTests(unittest.TestCase):
 
 class ReplTests(unittest.TestCase):
     def test_repl(self):
-        shell = Shell("demo_vfs")
+        shell = Shell("demo_vfs", make_vfs("demo_vfs"))
         commands = iter(["ls file.txt", "unknown", "exit"])
         prompts = []
         output = StringIO()
@@ -94,8 +99,8 @@ class ReplTests(unittest.TestCase):
             return next(commands)
 
         self.assertEqual(repl(shell, fake_input, output, errors), EXIT_OK)
-        self.assertEqual(prompts, ["demo_vfs$ "] * 3)
-        self.assertIn("ls: file.txt", output.getvalue())
+        self.assertEqual(prompts, ["demo_vfs:/$ "] * 3)
+        self.assertIn("file.txt", output.getvalue())
         self.assertIn("unknown: command not found", errors.getvalue())
 
 
@@ -132,7 +137,9 @@ class ScriptTests(unittest.TestCase):
             script = write_script(directory, text)
             output = StringIO()
             errors = StringIO()
-            success = run_script(Shell("test"), script, output, errors)
+            success = run_script(
+                Shell("test", make_vfs("test")), script, output, errors
+            )
         return success, output.getvalue(), errors.getvalue()
 
     def test_comments_and_output(self):
@@ -141,8 +148,8 @@ class ScriptTests(unittest.TestCase):
         )
         self.assertTrue(success)
         self.assertNotIn("comment", output)
-        self.assertIn("test$ ls file.txt", output)
-        self.assertIn("ls: file.txt", output)
+        self.assertIn("test:/$ ls file.txt", output)
+        self.assertIn("file.txt\n", output.replace("ls file.txt", ""))
         self.assertEqual(errors, "")
 
     def test_exit_stops_script(self):
@@ -152,15 +159,15 @@ class ScriptTests(unittest.TestCase):
     def test_error_is_reported_with_line_number(self):
         success, output, errors = self.run_text("ls\nunknown\nexit\n")
         self.assertFalse(success)
-        self.assertIn("test$ unknown", output)
+        self.assertIn("test:/$ unknown", output)
         self.assertIn(
             "script error (line 2): unknown: command not found", errors
         )
         self.assertIn("script: finished with 1 error(s)", errors)
 
     def test_script_continues_after_error(self):
-        _, output, _ = self.run_text("unknown\nls ok\n")
-        self.assertIn("ls: ok", output)
+        _, output, _ = self.run_text("unknown\nls found.txt\n")
+        self.assertIn("found.txt", output.splitlines())
 
     def test_missing_script(self):
         with self.assertRaises(ShellError):
@@ -257,7 +264,7 @@ class MainTests(unittest.TestCase):
 
     def test_prompt_in_script_contains_vfs_name(self):
         _, output, _ = self.run_main("ls\nexit\n")
-        self.assertIn("demo$ ls", output)
+        self.assertIn("demo:/$ ls", output)
 
     def test_success_exit_code(self):
         code, _, _ = self.run_main("ls\nexit\n")
